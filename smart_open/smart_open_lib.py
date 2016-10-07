@@ -29,6 +29,8 @@ import subprocess
 import sys
 import requests
 import io
+import contextlib
+
 if sys.version_info[0] == 2:
     import httplib
 elif sys.version_info[0] == 3:
@@ -789,6 +791,16 @@ multipart upload may fail")
             self.close()
 
 
+@contextlib.contextmanager
+def withable_gzip(fileobj, mode):
+    """Makes gzip.GzipFile behave like a context manager.
+
+    Specifically for Python 2.6, unneeded for other versions."""
+    gz = gzip.GzipFile(fileobj=fileobj, mode=mode)
+    yield gz
+    gz.close()
+
+
 def s3_open_key(key, mode, **kwargs):
     s3_check_key(key)
 
@@ -832,10 +844,10 @@ def s3_open_key(key, mode, **kwargs):
     #
     if mode in ["r", "rb"] and is_gzip(key.name) and not ignore_extension:
         fileobj = S3BufferedInputBase(key)
-        return gzip.GzipFile(fileobj=fileobj, mode="rb")
+        return withable_gzip(fileobj, "rb")
     elif mode in ["w", "wb"] and is_gzip(key.name) and not ignore_extension:
         fileobj = S3BufferedOutputBase(key)
-        return gzip.GzipFile(fileobj=fileobj, mode="wb")
+        return withable_gzip(fileobj, "wb")
     elif mode == "rb":
         return S3BufferedInputBase(key)
     elif mode == "r":
