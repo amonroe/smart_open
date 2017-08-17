@@ -12,7 +12,6 @@ import logging
 import tempfile
 import sys
 import os
-import io
 
 import boto
 import mock
@@ -94,6 +93,7 @@ class ParseUriTest(unittest.TestCase):
         parsed_uri = smart_open.ParseUri("webhdfs://host:port/path/file?query_part_1&query_part2")
         self.assertEqual(parsed_uri.scheme, "webhdfs")
         self.assertEqual(parsed_uri.uri_path, "host:port/webhdfs/v1/path/file?query_part_1&query_part2")
+
 
 class SmartOpenReadTest(unittest.TestCase):
     """
