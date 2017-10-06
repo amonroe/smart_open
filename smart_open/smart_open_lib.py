@@ -42,9 +42,7 @@ elif sys.version_info[0] == 3:
     import io as StringIO
     import http.client as httplib
 
-from boto.compat import BytesIO, urlsplit, six
-import boto.s3.connection
-import boto.s3.key
+from botocore.compat import urlsplit, six
 from ssl import SSLError
 
 logger = logging.getLogger(__name__)
@@ -167,8 +165,8 @@ def smart_open(uri, mode="rb", **kw):
                 raise NotImplementedError("file mode %s not supported for %r scheme", mode, parsed_uri.scheme)
         else:
             raise NotImplementedError("scheme %r is not supported", parsed_uri.scheme)
-    elif isinstance(uri, boto.s3.key.Key):
-        return s3_open_key(uri, mode, **kw)
+    #elif isinstance(uri, boto.s3.key.Key):
+    #    return s3_open_key(uri, mode, **kw)
     elif hasattr(uri, 'read'):
         # simply pass-through if already a file-like
         return uri
@@ -209,26 +207,8 @@ def s3_open_uri(parsed_uri, mode, **kwargs):
     else:
         s3_mode = mode
 
-    #
-    # TODO: I'm not sure how to handle this with boto3.  Any ideas?
-    #
-    # https://github.com/boto/boto3/issues/334
-    #
-    # _setup_unsecured_mode()
-
     fobj = smart_open_s3.open(parsed_uri.bucket_id, parsed_uri.key_id, s3_mode, **kwargs)
     return _CODECS[codec](fobj, mode)
-
-
-def _setup_unsecured_mode(parsed_uri, kwargs):
-    port = kwargs.pop('port', parsed_uri.port)
-    if port != 443:
-        kwargs['port'] = port
-
-    if not kwargs.pop('is_secure', parsed_uri.scheme != 's3u'):
-        kwargs['is_secure'] = False
-        # If the security model docker is overridden, honor the host directly.
-        kwargs['calling_format'] = boto.s3.connection.OrdinaryCallingFormat()
 
 
 def s3_open_key(key, mode, **kwargs):
@@ -339,7 +319,7 @@ class ParseUri(object):
             self.bucket_id = (parsed_uri.netloc + parsed_uri.path).split('@')
             self.key_id = None
             self.port = 443
-            self.host = boto.config.get('s3', 'host', 's3.amazonaws.com')
+            #self.host = botocore.config.get('s3', 'host', 's3.amazonaws.com')
             self.ordinary_calling_format = False
             if len(self.bucket_id) == 1:
                 # URI without credentials: s3://bucket/object
@@ -569,7 +549,7 @@ class HttpReadStream(object):
             auth = (user, password)
         else:
             auth = None
-        
+
         self.response = requests.get(url, auth=auth, stream=True)
 
         if not self.response.ok:
@@ -619,7 +599,7 @@ class HttpReadStream(object):
             if self._read_iter is None:
                 self._read_iter = self.response.iter_content(size)
                 self._read_buffer = next(self._read_iter)
-            
+
             while len(self._read_buffer) < size:
                 try:
                     self._read_buffer += next(self._read_iter)
@@ -632,7 +612,7 @@ class HttpReadStream(object):
                         return ''
                     else:
                         return retval
-            
+
             # If we got here, it means we have enough data in the buffer
             # to return to the caller.
             retval = self._read_buffer[:size]

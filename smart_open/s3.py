@@ -258,15 +258,15 @@ class BufferedOutputBase(io.BufferedIOBase):
 multipart upload may fail")
 
         session = boto3.Session(profile_name=kwargs.pop('profile_name', None))
-        s3 = session.resource('s3', **kwargs)
+        s3 = session.resource('s3')
 
         #
         # https://stackoverflow.com/questions/26871884/how-can-i-easily-determine-if-a-boto-3-s3-bucket-resource-exists
         #
-        s3.create_bucket(Bucket=bucket)
+        #s3.create_bucket(Bucket=bucket)
         self._object = s3.Object(bucket, key)
         self._min_part_size = min_part_size
-        self._mp = self._object.initiate_multipart_upload()
+        self._mp = self._object.initiate_multipart_upload(**kwargs)
 
         self._buf = io.BytesIO()
         self._total_bytes = 0
